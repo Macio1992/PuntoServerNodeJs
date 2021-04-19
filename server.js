@@ -32,11 +32,12 @@ io.on("connection", socket => {
 
     io.emit('send players', players);
 
-    socket.on('create player', gamerName => {
+    socket.on('create player', () => {
+        const color = selectColor();
         const player = {
             id: socket.id,
-            playerName: gamerName,
-            color: selectColor()
+            playerName: `player-${color}`,
+            color
         };
         players.push(player);
         io.emit('send players', players);
@@ -45,7 +46,6 @@ io.on("connection", socket => {
     });
 
     socket.on('disconnect', () => {
-        const player = players.find(p => p.id === socket.id);
         const playerIndex = players.findIndex(p => p.id === socket.id);
 
         players.splice(playerIndex, 1);
