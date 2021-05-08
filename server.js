@@ -13,10 +13,11 @@ const colors = ['red', 'green', 'blue', 'orange'];
 const players = [];
 const dictionary = {
     CLIENT: {
-        JOIN_GAME: 'JoinGame'
+        JOIN_GAME: 'JoinGame',
     },
     SERVER: {
-        SEND_PLAYERS: 'SendPlayers'
+        SEND_PLAYERS: 'SendPlayers',
+        SEND_PLAYER_COLOR: 'SendPlayerColor',
     }
 };
 
@@ -34,7 +35,7 @@ io.on("connection", socket => {
     const { clientsCount } = io.engine;
     const { CLIENT, SERVER } = dictionary;
     const { JOIN_GAME } = CLIENT;
-    const { SEND_PLAYERS } = SERVER;
+    const { SEND_PLAYERS, SEND_PLAYER_COLOR } = SERVER;
 
     if (clientsCount > 4) {
         console.log('4 players are here');
@@ -47,11 +48,11 @@ io.on("connection", socket => {
         const color = selectColor();
         const player = {
             id: socket.id,
-            playerName: `player-${color}`,
             color
         };
         players.push(player);
         io.emit(SEND_PLAYERS, players);
+        socket.emit(SEND_PLAYER_COLOR, player.color);
         console.log('Players ', players);
         console.log('colors ', colors);
     });
