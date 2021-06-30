@@ -15,11 +15,14 @@ const dictionary = {
   CLIENT: {
     JOIN_GAME: "JoinGame",
     SEND_BOARD_CLIENT: "SendBoardFromClient",
+    SEND_CARDS_CLIENT: "SendCardsFromClient",
+    SEND_NEXT_PLAYER_CLIENT: "SendNextPlayer",
   },
   SERVER: {
     SEND_PLAYERS: "SendPlayers",
     SEND_PLAYER_COLOR: "SendPlayerColor",
     SEND_BOARD_SERVER: "SendBoardFromServer",
+    SEND_ACTIVE_PLAYER_SERVER: "SendActivePlayer",
   },
 };
 let serverBoard = [
@@ -30,6 +33,15 @@ let serverBoard = [
   [null, null, null, null, null, null],
   [null, null, null, null, null, null],
 ];
+
+const playersCards = {
+  red: {},
+  green: {},
+  blue: {},
+  orange: {},
+};
+
+let activePlayer;
 
 const generateRandomNumber = (min, max) =>
   Math.floor(Math.random() * (max - min)) + min;
@@ -43,15 +55,19 @@ function selectColor() {
 }
 
 io.on("connection", (socket) => {
-  const { clientsCount } = io.engine;
   const { CLIENT, SERVER } = dictionary;
-  const { JOIN_GAME, SEND_BOARD_CLIENT } = CLIENT;
-  const { SEND_PLAYERS, SEND_PLAYER_COLOR, SEND_BOARD_SERVER } = SERVER;
-
-  if (clientsCount > 4) {
-    console.log("4 players are here");
-    return;
-  }
+  const {
+    JOIN_GAME,
+    SEND_BOARD_CLIENT,
+    SEND_CARDS_CLIENT,
+    SEND_NEXT_PLAYER_CLIENT,
+  } = CLIENT;
+  const {
+    SEND_PLAYERS,
+    SEND_PLAYER_COLOR,
+    SEND_BOARD_SERVER,
+    SEND_ACTIVE_PLAYER_SERVER,
+  } = SERVER;
 
   io.emit(SEND_PLAYERS, players);
 
@@ -65,11 +81,32 @@ io.on("connection", (socket) => {
     players.push(player);
     io.emit(SEND_PLAYERS, players);
     socket.emit(SEND_PLAYER_COLOR, player.color);
+
+    activePlayer = color;
+    io.emit(SEND_ACTIVE_PLAYER_SERVER, activePlayer);
   });
 
   socket.on(SEND_BOARD_CLIENT, (board) => {
     serverBoard = board;
     io.emit(SEND_BOARD_SERVER, serverBoard);
+  });
+
+  socket.on(SEND_CARDS_CLIENT, (cardsByPlayer) => {
+    const { color, cards } = cardsByPlayer;
+    playersCards[color] = cards;
+  });
+
+  socket.on(SEND_NEXT_PLAYER_CLIENT, () => {
+    const activePlayerIndex = players.findIndex(
+      (p) => p.color === activePlayer
+    );
+    const nextPlayerIndex =
+      activePlayerIndex === players.length - 1 ? 0 : activePlayerIndex + 1;
+    const nextPlayer = players[nextPlayerIndex].color;
+
+    activePlayer = nextPlayer;
+
+    io.emit(SEND_ACTIVE_PLAYER_SERVER, activePlayer);
   });
 
   socket.on("disconnect", () => {
